@@ -16,6 +16,9 @@ Rules applied to every epsQuestions[] entry with section == "listening":
    unless the label is 남/여-based (then expanded and kept, single voice).
 4. Turns are separated by a newline.
 5. Quotation wrappers ('...' / "...") around whole utterances are stripped.
+6. Legacy turn separators (" / ", " | ") at the end of an utterance are dropped,
+   since rule 4 already separates turns; only trailing separators are removed so
+   slashes inside an utterance survive.
 
 Idempotent: running twice yields identical output.
 """
@@ -60,6 +63,23 @@ def strip_quotes(text: str) -> str:
     return t
 
 
+# A "/" or "／" at the end of an utterance is a legacy turn separator, not
+# content. Once turns are joined by newlines it must be dropped, otherwise the
+# separator survives normalization and audit-listening-dialogues.py keeps
+# reporting `slash-separated-dialogue` (and the TTS reads the pause as text).
+TRAILING_SEPARATOR_RE = re.compile(r"[\s\u00a0]*[/／|]+\s*$")
+
+
+def strip_turn_separator(text: str) -> str:
+    """Remove a trailing legacy turn separator, then re-strip quotes/whitespace.
+
+    Only a trailing separator is removed, so slashes inside an utterance
+    (e.g. "오전/오후") are preserved.
+    """
+    stripped = TRAILING_SEPARATOR_RE.sub("", text)
+    return strip_quotes(stripped) if stripped != text else text
+
+
 def normalize_passage(passage: str):
     """Return (new_passage, changed_reason or None)."""
     parts = split_labelled(passage)
@@ -75,8 +95,8 @@ def normalize_passage(passage: str):
     # Single-speaker passages
     if len(distinct) == 1:
         label = distinct[0]
-        body = " ".join(strip_quotes(t) for _, t in labelled)
-        head = " ".join(strip_quotes(t) for l, t in parts if l is None)
+        body = " ".join(strip_turn_separator(t) for _, t in labelled)
+        head = " ".join(strip_turn_separator(t) for l, t in parts if l is None)
         combined = (head + " " + body).strip() if head else body
         if label in MALE:
             new = "남자: " + combined
@@ -105,7 +125,7 @@ def normalize_passage(passage: str):
 
     lines = []
     for l, t in parts:
-        text = strip_quotes(t)
+        text = strip_turn_separator(t)
         if l is None:
             if text:
                 lines.append(text)  # narration line, no label

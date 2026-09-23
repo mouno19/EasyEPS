@@ -83,7 +83,8 @@ Every lesson file `content/lessons/lesson-NN.json` MUST be valid JSON matching t
 - `grammar`: 4–5 patterns with Bengali explanations and 2+ examples each.
 - `dialogues`: 3 dialogues, 4–8 lines each.
 - `practice`: EXACTLY 20 items. Mix: ≥4 multiple-choice, ≥3 fill-blank, ≥2 matching.
-- `epsQuestions`: EXACTLY 16 items. Mix: 10 reading + 6 listening-style. All options in Korean where natural; instructions in Bengali. (Chapters may exceed 16 up to the schema max of 20 when image-based questions are appended, matching the real exam's picture/safety-sign items.)
+- `epsQuestions`: 16–20 items (the Zod schema floor is 8, ceiling 20). Every shipped chapter currently has 19 or 20 — 56 chapters have 20, chapters 57–60 have 19. Mix: at least 5 reading + 3 listening-style; across the corpus it is 858 reading / 338 listening (12–17 reading and 3–7 listening per chapter). All options in Korean where natural; instructions in Bengali. The count rose above the original 16 when image-based questions were appended to match the real exam's picture/safety-sign items.
+- After ANY bulk edit to `content/lessons/`, re-sync the manifest with `python3 scripts/update-manifest-eps.py`. `scripts/audit_runtime_contract.py` (run in CI) now fails when `content/manifest.json` counts disagree with the lesson files.
 - `image` is OPTIONAL and backward-compatible. When present, `src` and `altBn` are required; a listening question with an image must still include a `passage` so audio can be synthesized. Local assets live in `client/public/eps-images/` and are referenced as `/eps-images/<name>.svg`.
 - `answer` index MUST point to the correct option. Content MUST be original artwork/text.
 - All Bengali text natural and correct; Korean text uses standard hangul with correct spacing.
