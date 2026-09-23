@@ -47,7 +47,11 @@ Database access remains optional during local tooling. Every helper explicitly h
 
 ## Content acceptance criteria
 
+> **Status note:** the numbers below describe the original v1 acceptance criteria and are kept for history. The shipped corpus conforms to the **v2** spec in `content/SCHEMA.md`, which is authoritative.
+
 All 60 lesson files must conform to `content/SCHEMA.md`. Each contains 16–22 vocabulary entries, 2–4 grammar patterns with at least two examples, exactly two dialogues of 4–8 lines, exactly 10 practice items with the required activity mix, and exactly 8 EPS questions split into five reading and three listening-style items. Numeric answer indices must be valid, identifiers must be unique within each lesson, titles and categories must match `shared/chapters.ts`, and the manifest must describe every accepted file.
+
+As shipped under v2 the actual per-chapter shape is: 30–35 vocabulary entries, 4–5 grammar patterns with at least two examples each, exactly three dialogues of 4–8 lines, exactly 20 practice items (≥4 multiple-choice, ≥3 fill-blank, ≥2 matching), and 19–20 EPS questions with at least five reading and three listening items. Corpus totals: 1,922 vocabulary items, 1,200 practice questions, 1,196 EPS questions (858 reading / 338 listening), 571 of them picture-based. The manifest must also carry counts that match the lesson files — `scripts/audit_runtime_contract.py` enforces this in CI, and `scripts/update-manifest-eps.py` repairs drift.
 
 ## Quality gates
 
