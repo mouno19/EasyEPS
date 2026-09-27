@@ -1,12 +1,26 @@
 # EasyEPS
 
-Bangla-first **EPS-TOPIK** learning app for Bangladeshi learners preparing to live and work in Korea. Korean and English are available as supporting languages.
+[![CI](https://github.com/mouno19/EasyEPS/actions/workflows/ci.yml/badge.svg)](https://github.com/mouno19/EasyEPS/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- **60 chapters** of original curriculum (vocabulary, grammar, dialogues, practice, EPS-style exams)
-- **v2 enriched spec per chapter**: 30–35 vocabulary items, 20 practice questions, 16 EPS questions (10 reading / 6 listening)
-- **Guest mode**: browse, study, practice, and take mock tests with local progress
-- **Signed-in mode**: durable progress, planner, badges, certificates, AI tutor
-- **Stack**: React 19 · Tailwind 4 · Express · tRPC · Drizzle · MySQL · Zod · Vitest
+**EasyEPS is a Bangla-first EPS-TOPIK learning app for Bangladeshi learners preparing to live and work in Korea.** Korean and English are available as supporting languages.
+
+[**Try the live demo →**](https://easy-eps.vercel.app)
+
+## Why EasyEPS
+
+Many aspiring migrant workers need Korean exam preparation that is understandable in Bangla, practical on a phone, and aligned with the EPS-TOPIK format. EasyEPS brings the core study journey into one open-source application:
+
+- **60 chapters** of original curriculum covering vocabulary, grammar, dialogues, practice, and EPS-style exams
+- **Enriched chapter content** with roughly 30–35 vocabulary items, 20 practice questions, and reading/listening questions
+- **Bangla-first learning experience** with Korean and English support
+- **Guest mode** so learners can browse, study, practice, and take mock tests without creating an account
+- **Signed-in learning tools** including durable progress, planner, badges, certificates, and an AI tutor
+- **Accessible exam practice** through chapter exams and timed 20/40-question mock tests
+
+## Project status
+
+The core 60-chapter curriculum and learning flows are implemented. The project is actively maintained and welcomes feedback from EPS-TOPIK learners, Korean teachers, accessibility advocates, and developers. See the [roadmap and implementation notes](IMPLEMENTATION_PLAN.md) for the product direction.
 
 ## Quick start
 
@@ -34,29 +48,19 @@ See [`.env.example`](.env.example). Minimum for local curriculum browsing:
 | Variable | Required for | Notes |
 |---|---|---|
 | `DATABASE_URL` | Signed-in progress / planner / certs | MySQL connection string. Public curriculum works without it. |
-| `JWT_SECRET` | Auth sessions | Long random string |
+| `JWT_SECRET` | Auth sessions | Long random string; never commit it. |
 | `VITE_APP_ID` | Login button | Manus app id |
 | `VITE_OAUTH_PORTAL_URL` | Login button | Manus OAuth portal |
 | `OAUTH_SERVER_URL` | OAuth callback | Manus OAuth API base |
 | `OWNER_OPEN_ID` | First admin | Manus openId promoted to `admin` on first login |
-| `XAI_API_KEY` | AI tutor | **SpaceXAI** key from [console.x.ai](https://console.x.ai). Server-side only. |
+| `XAI_API_KEY` | AI tutor | xAI key; server-side only |
 | `XAI_BASE_URL` | AI tutor (optional) | Default `https://api.x.ai/v1` |
 | `XAI_MODEL` | AI tutor (optional) | Default `grok-4.5` |
-| `BUILT_IN_FORGE_API_URL` / `BUILT_IN_FORGE_API_KEY` | Storage / legacy | Manus Forge helpers; optional LLM fallback if `XAI_API_KEY` unset |
+| `BUILT_IN_FORGE_API_URL` / `BUILT_IN_FORGE_API_KEY` | Storage / legacy | Optional Manus Forge helpers |
 
-### AI tutor (SpaceXAI)
+### AI tutor
 
-EasyEPS uses **SpaceXAI** (xAI Grok) for the Bangla AI tutor:
-
-```bash
-export XAI_API_KEY=xai-...   # https://console.x.ai
-# optional: XAI_MODEL=grok-4.5
-pnpm dev
-```
-
-The key is read **only on the server** (`server/_core/llm.ts` → `https://api.x.ai/v1/chat/completions`). Never put it in `VITE_*` client env.
-
-Without OAuth env vars, the app still runs: guests can use the full curriculum and exams; signed-in features show a sign-in gate.
+The AI tutor calls the model from the server. Credentials are never placed in `VITE_*` client variables. Without AI or OAuth configuration, guests can still use the public curriculum and exams.
 
 ## Main routes
 
@@ -65,26 +69,22 @@ Without OAuth env vars, the app still runs: guests can use the full curriculum a
 | `/` | Landing |
 | `/curriculum` | 60-chapter catalog |
 | `/lesson/:chapter` | Lesson player (1–60) |
-| `/mock-test` | Timed 20/40 question mock |
-| `/dashboard`, `/planner`, `/profile`, `/tutor` | Signed-in (local fallback where applicable) |
-| `/certificate/:code` | Public certificate verify |
+| `/mock-test` | Timed 20/40-question mock |
+| `/dashboard`, `/planner`, `/profile`, `/tutor` | Signed-in learning tools |
+| `/certificate/:code` | Public certificate verification |
 | `/admin` | Admin role only |
 
-## Content
+## Content and architecture
 
 - Canonical lessons: `content/lessons/lesson-01.json` … `lesson-60.json`
-- Schema: [`content/SCHEMA.md`](content/SCHEMA.md)
-- Manifest: [`content/manifest.json`](content/manifest.json)
+- Lesson schema: [`content/SCHEMA.md`](content/SCHEMA.md)
+- Content manifest: [`content/manifest.json`](content/manifest.json)
 - Chapter titles: [`shared/chapters.ts`](shared/chapters.ts)
+- Stack: React 19, Tailwind 4, Express, tRPC, Drizzle, MySQL, Zod, and Vitest
+
+Lesson JSON is the public source of truth and is validated with Zod on load. Progress, attempts, planner records, badges, and certificates are stored in MySQL when configured. Exam answers are graded server-side for authenticated records; client scores are not trusted for badges or certificates.
 
 Do not regenerate existing lessons. Author only missing chapters, validate against the schema, update the manifest, and push.
-
-Optional DB seed (idempotent upsert by chapter):
-
-```bash
-pnpm db:push          # apply migrations when DATABASE_URL is set
-node scripts/seed-lessons.mjs
-```
 
 ## Scripts
 
@@ -92,18 +92,17 @@ node scripts/seed-lessons.mjs
 |---|---|
 | `pnpm dev` | Development server |
 | `pnpm build` / `pnpm start` | Production build and run |
-| `pnpm check` | `tsc --noEmit` |
-| `pnpm test` | Vitest |
-| `pnpm db:push` | Generate + migrate Drizzle schema |
+| `pnpm check` | TypeScript checking |
+| `pnpm test` | Vitest test suite |
+| `pnpm content:audit` | Curriculum/runtime audits |
+| `pnpm db:push` | Generate and migrate Drizzle schema |
+| `pnpm db:seed` | Idempotently seed lesson content |
 | `pnpm format` | Prettier |
 
-## Architecture notes
+## Contributing and security
 
-- Lesson JSON is the **public source of truth** for curriculum reads (validated with Zod on load).
-- Progress/attempts/planner/badges/certificates live in MySQL when configured.
-- Exam answers are graded **server-side** for authenticated attempt recording (client score is not trusted for badges/certificates).
-- Auth currently uses **Manus OAuth**. Self-hosting without Manus requires wiring an alternate identity provider.
+Suggestions, content corrections, translations, accessibility improvements, and code contributions are welcome. Please read the repository guidance and open an issue before large changes. For security concerns, follow [`SECURITY.md`](SECURITY.md) and do not disclose sensitive vulnerabilities publicly.
 
 ## License
 
-MIT
+EasyEPS is released under the [MIT License](LICENSE).
